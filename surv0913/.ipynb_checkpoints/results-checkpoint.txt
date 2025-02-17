@@ -1,0 +1,6 @@
+average c-index for n tirals
+
+            cox, deepsurv, deephit, lstm, mtl_lstm
+mean
+median
+regression
