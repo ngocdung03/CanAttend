@@ -6,9 +6,6 @@ from sksurv.metrics import brier_score, concordance_index_ipcw
 
 class Evaluator:
     def __init__(self, df, train_index):
-        '''the input duration_train should be the raw durations (continuous),
-        NOT the discrete index of duration.
-        '''
         self.df_train_all = df.loc[train_index]
  
     def eval_single(self, model, test_set, val_batch_size=None, time_unit='quantile', allow_all_censored=False):
@@ -24,8 +21,7 @@ class Evaluator:
         df_test, df_y_test = test_set
         surv = model.predict_surv(df_test, batch_size=val_batch_size)
         risk = 1 - surv
-        
-        # print('eval_util df_y_test', df_y_test.head())
+
         durations_test, events_test = get_target(df_y_test)
         et_test = np.array([(events_test[i], durations_test[i]) for i in range(len(events_test))],
                     dtype = [('e', bool), ('t', float)])
@@ -71,27 +67,17 @@ class Evaluator:
             et_test = np.array([(events_test[i], durations_test[i]) for i in range(len(events_test))],
                         dtype = [('e', bool), ('t', float)])
             
-            # print('eval_utils et_train', len(et_train), et_train)
-            # print('eval_utils et_test', len(et_test), et_test)
-            # print('eval util input for ipcw(): ')
-            # print('et_train: ', et_train.shape, et_train)
-            # print('et_test: ', et_test.shape, et_test)
-            # print('risk[:, 0-1]', risk[:, 0+1].shape, risk[:, 0+1])
             
             brs = brier_score(et_train, et_test, surv.to("cpu").numpy()[:,1:-1], times)[1]
             cis = []
             for i, _ in enumerate(times):
-                # print('times: ', i) ##
                 
                 ### 
                 mask = durations_test < times[i]
                 event_1st_time = events_test[mask]
                 if not np.any(event_1st_time):
                     print(f'All censored ({len(event_1st_time)} obs) at risk {risk_idx} and {i}th time')
-                # print('ST eval_util Input for concordance_idx_ipcw: ')
-                # print(' et_train', et_train.shape, et_train)
-                # print(' et_test', et_train.shape, et_test)
-                # print(' all risk and sliced idx', risk.shape, i, risk)
+
                 cis.append(concordance_index_ipcw(et_train, et_test, risk[:, i+1].to("cpu").numpy(), times[i], allow_all_censored=allow_all_censored)[0])  ##
                 metric_dict[f'{horizons[i]}_ipcw_{risk_idx}'] = cis[i]
                 metric_dict[f'{horizons[i]}_brier_{risk_idx}'] = brs[i]
@@ -104,10 +90,6 @@ class Evaluator:
         return metric_dict
 
     def eval(self, model, test_set, confidence=None, val_batch_size=None, allow_all_censored=False, time_unit='quantile'):
-        '''do evaluation.
-        if confidence is not None, it should be in (0, 1) and the confidence
-        interval will be given by bootstrapping.
-        '''
         print("***"*10) 
         print("start evaluation")
         print("***"*10)

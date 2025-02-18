@@ -5,7 +5,7 @@ import math, os
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 import inspect
 import torch.nn.functional as F
-from .config import STConfig
+from ..config import STConfig
 import numpy as np
 from math import sqrt
 import os
@@ -33,12 +33,7 @@ class BaseModel(nn.Module):
         # self.tie_weights()
 
     def tie_weights(self):
-        """
-        Tie the weights between the input embeddings and the output embeddings.
 
-        If the :obj:`torchscript` flag is set in the configuration, can't handle parameter sharing so we are cloning
-        the weights instead.
-        """
         output_embeddings = self.get_output_embeddings()
         if output_embeddings is not None and self.config.tie_word_embeddings:
             self._tie_or_clone_weights(output_embeddings, self.get_input_embeddings())
@@ -51,21 +46,6 @@ class BaseModel(nn.Module):
     def get_head_mask(
         self, head_mask: Optional[Tensor], num_hidden_layers: int, is_attention_chunked: bool = False
     ) -> Tensor:
-        """
-        Prepare the head mask if needed.
-
-        Args:
-            head_mask (:obj:`torch.Tensor` with shape :obj:`[num_heads]` or :obj:`[num_hidden_layers x num_heads]`, `optional`):
-                The mask indicating if we should keep the heads or not (1.0 for keep, 0.0 for discard).
-            num_hidden_layers (:obj:`int`):
-                The number of hidden layers in the model.
-            is_attention_chunked: (:obj:`bool`, `optional`, defaults to :obj:`False`):
-                Whether or not the attentions scores are computed by chunks or not.
-
-        Returns:
-            :obj:`torch.Tensor` with shape :obj:`[num_hidden_layers x batch x num_heads x seq_length x seq_length]` or
-            list with :obj:`[None]` for each layer.
-        """
         if head_mask is not None:
             head_mask = self._convert_head_mask_to_5d(head_mask, num_hidden_layers)
             if is_attention_chunked is True:
@@ -76,7 +56,7 @@ class BaseModel(nn.Module):
         return head_mask
 
     def _convert_head_mask_to_5d(self, head_mask, num_hidden_layers):
-        """-> [num_hidden_layers x batch x num_heads x seq_length x seq_length]"""
+    
         if head_mask.dim() == 1:
             head_mask = head_mask.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
             head_mask = head_mask.expand(num_hidden_layers, -1, -1, -1, -1)
@@ -87,7 +67,6 @@ class BaseModel(nn.Module):
         return head_mask
 
     def _init_weights(self, module):
-        """Initialize the weights"""
         if isinstance(module, nn.Linear):
             # Slightly different from the TF version which uses truncated_normal for initialization
             # cf https://github.com/pytorch/pytorch/pull/5617
@@ -103,15 +82,12 @@ class BaseModel(nn.Module):
             module.weight.data.fill_(1.0)
 
     def _prune_heads(self, heads_to_prune):
-        """
-        Prunes heads of the model. heads_to_prune: dict of {layer_num: list of heads to prune in this layer} See base
-        class PreTrainedModel
-        """
+
         for layer, heads in heads_to_prune.items():
             self.encoder.layer[layer].attention.prune_heads(heads)
 
     def _tie_or_clone_weights(self, output_embeddings, input_embeddings):
-        """Tie or clone module weights depending of whether we are using TorchScript or not"""
+ 
         if self.config.torchscript:
             output_embeddings.weight = nn.Parameter(input_embeddings.weight.clone())
         else:
@@ -667,19 +643,6 @@ class BertEncoder(nn.Module):
         )
 
 def prune_linear_layer(layer: nn.Linear, index: torch.LongTensor, dim: int = 0) -> nn.Linear:
-    """
-    Prune a linear layer to keep only entries in index.
-
-    Used to remove heads.
-
-    Args:
-        layer (:obj:`torch.nn.Linear`): The layer to prune.
-        index (:obj:`torch.LongTensor`): The indices to keep in the layer.
-        dim (:obj:`int`, `optional`, defaults to 0): The dimension on which to keep the indices.
-
-    Returns:
-        :obj:`torch.nn.Linear`: The pruned layer as a new layer with :obj:`requires_grad=True`.
-    """
     index = index.to(layer.weight.device)
     W = layer.weight.index_select(dim, index).clone().detach()
     if layer.bias is not None:
@@ -702,18 +665,6 @@ def prune_linear_layer(layer: nn.Linear, index: torch.LongTensor, dim: int = 0) 
 def find_pruneable_heads_and_indices(
     heads: List[int], n_heads: int, head_size: int, already_pruned_heads: Set[int]
 ) -> Tuple[Set[int], torch.LongTensor]:
-    """
-    Finds the heads and their indices taking :obj:`already_pruned_heads` into account.
-
-    Args:
-        heads (:obj:`List[int]`): List of the indices of heads to prune.
-        n_heads (:obj:`int`): The number of heads in the model.
-        head_size (:obj:`int`): The size of each head.
-        already_pruned_heads (:obj:`Set[int]`): A set of already pruned heads.
-
-    Returns:
-        :obj:`Tuple[Set[int], torch.LongTensor]`: A tuple with the remaining heads and their corresponding indices.
-    """
     mask = torch.ones(n_heads, head_size)
     heads = set(heads) - already_pruned_heads  # Convert to set and remove already pruned heads
     for head in heads:

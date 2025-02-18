@@ -2,7 +2,7 @@ from easydict import EasyDict
 
 caConfig = EasyDict(
     {
-        'data': 'metabric', # dataset name, in 'metabric', 'support', or 'seer'
+        'data': 'metabric', # dataset name, in 'kcpsii', or 'seer'
         'num_durations': 5, # num of discrete intervals for prediction, e.g., num_dur = 5 means the whole period is discretized to be 5 intervals
         'horizons': [.25, .5, .75], # the discrete intervals are cut at 0%, 25%, 50%, 75%, 100%
         'seed': 1234,

@@ -8,8 +8,8 @@ import torchtuples as tt
 import pdb
 import torch.nn.functional as F
 from .modeling_bert import BaseModel, BertEmbeddings, BertEncoder, BertCLS, BertCLSMulti 
-from .utils import pad_col, de_tuple
-from .config import STConfig
+from ..utils import pad_col, de_tuple
+from ..config import STConfig
  
 class CanAttend(BaseModel):
 
@@ -28,13 +28,6 @@ class CanAttend(BaseModel):
 
     @property
     def duration_index(self):
-        """
-        Array of durations that defines the discrete times. This is used to set the index
-        of the DataFrame in `predict_surv_df`.
-        
-        Returns:
-            np.array -- Duration index.
-        """
         return self._duration_index
 
     @duration_index.setter
@@ -187,13 +180,6 @@ class Survtrace(BaseModel):
 
     @property
     def duration_index(self):
-        """
-        Array of durations that defines the discrete times. This is used to set the index
-        of the DataFrame in `predict_surv_df`.
-        
-        Returns:
-            np.array -- Duration index.
-        """
         return self._duration_index
 
     @duration_index.setter
@@ -216,26 +202,6 @@ class Survtrace(BaseModel):
         output_attentions=None,
         output_hidden_states=None,
     ):
-        r"""
-        encoder_hidden_states  (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, hidden_size)`, `optional`):
-            Sequence of hidden-states at the output of the last layer of the encoder. Used in the cross-attention if
-            the model is configured as a decoder.
-        encoder_attention_mask (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`):
-            Mask to avoid performing attention on the padding token indices of the encoder input. This mask is used in
-            the cross-attention if the model is configured as a decoder. Mask values selected in ``[0, 1]``:
-
-            - 1 for tokens that are **not masked**,
-            - 0 for tokens that are **masked**.
-        past_key_values (:obj:`tuple(tuple(torch.FloatTensor))` of length :obj:`config.n_layers` with each tuple having 4 tensors of shape :obj:`(batch_size, num_heads, sequence_length - 1, embed_size_per_head)`):
-            Contains precomputed key and value hidden states of the attention blocks. Can be used to speed up decoding.
-
-            If :obj:`past_key_values` are used, the user can optionally input only the last :obj:`decoder_input_ids`
-            (those that don't have their past key value states given to this model) of shape :obj:`(batch_size, 1)`
-            instead of all :obj:`decoder_input_ids` of shape :obj:`(batch_size, sequence_length)`.
-        use_cache (:obj:`bool`, `optional`):
-            If set to :obj:`True`, :obj:`past_key_values` key value states are returned and can be used to speed up
-            decoding (see :obj:`past_key_values`).
-        """
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states

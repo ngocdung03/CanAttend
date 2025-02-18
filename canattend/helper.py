@@ -50,15 +50,7 @@ def load_dataset0(args, new_data=False, drop_normal=False):  # Modified from run
         data = data[data['event'] != 0] 
     
     return data
-    # # split testset
-    # data_x = data[feature]
-    # test = data_x.sample(frac=args.test_rate) #random_state=1
-    # train = data_x.drop(test.index)
-    # if validation:
-    #     val = train.sample(frac=validation)
-    #     train = train.drop(val.index)
 
-    # imputation
 def dsets_process(args, data, fulldata, feature, validation=True):
     train, test, val = data
     if args.imputation == 'regression':
@@ -93,8 +85,7 @@ def dsets_process(args, data, fulldata, feature, validation=True):
 
 def dsets_process2(dats, dfs, cols_std, cols_cat):
     dts_concat = []
-    # print('len(dats[0])', len(dats[0]))
-    # print('dfs[0] index', len(dfs[0].index), dfs[0].index)
+
     for i in range(len(dats)):
         # print('i', i)
         dats[i] = pd.DataFrame(dats[i], columns=cols_std, 
@@ -104,8 +95,6 @@ def dsets_process2(dats, dfs, cols_std, cols_cat):
     return dts_concat
 
 def load_data(config, args):
-    '''load data, return updated configuration.
-    '''
     data = config['data']
     horizons = config['horizons']
     assert data in ["metabric", "nwtco", "support", "gbsg", "flchain", "seer", "ysdat"], "Data Not Found!" ##
@@ -114,15 +103,13 @@ def load_data(config, args):
 
     if data == "ysdat":
         df0 = load_dataset0(args, new_data=True) 
-        # print('config', config)
+
         df = copy.deepcopy(df0)
         df = df.rename(columns={"time": "duration"})
         df['event'] = df[config['task']]
-        # print('df[config["task"]]', df[config['task']].head())
-        # print('df.event', df['event'])                  
+                
         
         times = np.quantile(df["duration"][df["event"]==1.0], horizons).tolist() 
-        # print('times', times)
         
         df_feat = df.drop(["duration","event"],axis=1)
         
@@ -138,21 +125,15 @@ def load_data(config, args):
         
         ## Missing imputation and create new variables
         df_train, df_test, df_val, feature = dsets_process(args, (df_train, df_test, df_val), df0, feature0, validation=True)
-        # print('dsets_process df_train', df_train.head())
-        # print('df train and val cols 1', df_train.columns, df_val.columns)
     
         cols_categorical = ['SEX1']
         cols_standardize = [i for i in feature if i not in cols_categorical]
         df_train_std, df_test_std, df_val_std = df_train[cols_standardize], df_test[cols_standardize], df_val[cols_standardize]
         
-        # print('df_train_std', df_train_std.head())
-        
         # Missings were imputed in dsets_process() so array output of scaler retains order
         scaler = StandardScaler()
         df_train_std_disc = scaler.fit_transform(df_train_std)
         df_test_std_disc, df_val_std_disc = scaler.transform(df_test_std), scaler.transform(df_val_std)
-
-        # print('cols_std', cols_standardize)
         
         # Concat numerical and categorical cols
         # Impose index into df_std_disc, as long as no change in order
@@ -173,7 +154,6 @@ def load_data(config, args):
             vocab_size = df_feat[feat].max() + 1
         
         df_train_ftr, df_test_ftr, df_val_ftr = df_train_prc, df_test_prc, df_val_prc
-        # print('df train and val cols 3', df_train_ftr.columns, df_val_ftr.columns)
 
         # assign cuts - Later
         labtrans = LabelTransform(cuts=np.array([0]+times+[df["duration"].max()]))
@@ -182,12 +162,10 @@ def load_data(config, args):
         
         ## Redefine df_y dataframe because idx not retained
         df_y = pd.DataFrame({"duration": y[0], "event": y[1], "proportion": y[2]}, index=df.index) #? is this order right
-        # print('df_y', df_y.head())
         
         df_y_train = df_y.loc[df_train_ftr.index]
         df_y_val = df_y.loc[df_val_ftr.index]
         df_y_test = df.loc[df_test_ftr.index, ['duration', 'event']] ## should be original df
-        # print('df_y_test', df_y_test)
         
         # out of if else - does it change STConfig
         config['labtrans'] = labtrans
@@ -197,9 +175,31 @@ def load_data(config, args):
         config['vocab_size'] = int(vocab_size)
         config['duration_index'] = labtrans.cuts
         config['out_feature'] = int(labtrans.out_features)
-        # print('labstrans.cut', labtrans.cuts)
-        # print('config duration', config['duration_index'])
-        # print('df_y_test min', df_y_test['duration'].min())
-        # print('df_y_test max', df_y_test['duration'].max())
         
         return df, df_train_ftr, df_y_train, df_test_ftr, df_y_test, df_val_ftr, df_y_val
+    
+# Revised integrals as average across epoch 
+def average_dict(data):
+	# Dictionary to store the average values for each primary key
+	averages = {}
+
+	# Iterate over each primary key (e.g., 'event_0', 'event_1')
+	for primary_key, dict_list in data.items():
+		# Initialize a temporary dictionary to store the sum of values
+		sum_dict = {}
+		count = len(dict_list)  # Number of dictionaries for this primary key
+
+		# Sum up the values for each key in the dictionaries
+		for d in dict_list:
+			for key, value in d.items():
+				if key in sum_dict:
+					sum_dict[key] += value
+				else:
+					sum_dict[key] = value
+
+		# Compute the average for each key and store it in the averages dictionary
+		avg_dict = {k: v / count for k, v in sum_dict.items()}
+		averages[primary_key] = avg_dict
+
+	# Print the final dictionary containing average values
+	return averages

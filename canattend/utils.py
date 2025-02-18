@@ -7,25 +7,7 @@ from pycox.preprocessing.discretization import (make_cuts, IdxDiscUnknownC, _val
     DiscretizeUnknownC, Duration2Idx)
 
 class LabelTransform:
-    """
-    Defining time intervals (`cuts`) needed for the `PCHazard` method [1].
-    One can either determine the cut points in form of passing an array to this class,
-    or one can obtain cut points based on the training data.
 
-    Arguments:
-        cuts {int, array} -- Defining cut points, either the number of cuts, or the actual cut points.
-    
-    Keyword Arguments:
-        scheme {str} -- Scheme used for discretization. Either 'equidistant' or 'quantiles'
-            (default: {'equidistant})
-        min_ {float} -- Starting duration (default: {0.})
-        dtype {str, dtype} -- dtype of discretization.
-
-    References:
-    [1] Håvard Kvamme and Ørnulf Borgan. Continuous and Discrete-Time Survival Prediction
-        with Neural Networks. arXiv preprint arXiv:1910.06724, 2019.
-        https://arxiv.org/pdf/1910.06724.pdf
-    """
     def __init__(self, cuts, scheme='equidistant', min_=0., dtype=None):
         self._cuts = cuts
         self._scheme = scheme
@@ -92,11 +74,7 @@ class LabelTransform:
 
     @property
     def out_features(self):
-        """Returns the number of output features that should be used in the torch model.
-        
-        Returns:
-            [int] -- Number of output features.
-        """
+  
         if self.cuts is None:
             raise ValueError("Need to call `fit` before this is accessible.")
         return len(self.cuts) - 1
@@ -119,33 +97,14 @@ def array_or_tensor(tensor, numpy, input):
     return tt.utils.array_or_tensor(tensor, numpy, input)
 
 def make_subgrid(grid, sub=1):
-    """When calling `predict_surv` with sub != 1 this can help with
-    creating the duration index of the survival estimates.
 
-    E.g.
-    sub = 5
-    surv = model.predict_surv(test_input, sub=sub)
-    grid = model.make_subgrid(cuts, sub)
-    surv = pd.DataFrame(surv, index=grid)
-    """
     subgrid = tt.TupleTree(np.linspace(start, end, num=sub+1)[:-1]
                         for start, end in zip(grid[:-1], grid[1:]))
     subgrid = subgrid.apply(lambda x: tt.TupleTree(x)).flatten() + (grid[-1],)
     return subgrid
 
 def log_softplus(input, threshold=-15.):
-    """Equivalent to 'F.softplus(input).log()', but for 'input < threshold',
-    we return 'input', as this is approximately the same.
 
-    Arguments:
-        input {torch.tensor} -- Input tensor
-    
-    Keyword Arguments:
-        threshold {float} -- Treshold for when to just return input (default: {-15.})
-    
-    Returns:
-        torch.tensor -- return log(softplus(input)).
-    """
     output = input.clone()
     above = input >= threshold
     output[above] = F.softplus(input[above]).log()
@@ -165,7 +124,7 @@ def set_random_seed(seed=1234):
     torch.cuda.manual_seed_all(seed) # if you are using multi-GPU
 
 def pad_col(input, val=0, where='end'):
-    """Addes a column of `val` at the start of end of `input`."""
+
     if len(input.shape) != 2:
         raise ValueError(f"Only works for `phi` tensor that is 2-D.")
     pad = torch.zeros_like(input[:, :1])

@@ -11,9 +11,7 @@ import torchtuples as tt
 ## Functions related to RSF and DeepHit
 # DeepHit definition
 class CauseSpecificNet(torch.nn.Module):
-	"""Network structure similar to the DeepHit paper, but without the residual
-	connections (for simplicity).
-	"""
+
 	def __init__(self, in_features, num_nodes_shared, num_nodes_indiv, num_risks,
 				 out_features, batch_norm=True, dropout=None):
 		super().__init__()
@@ -30,7 +28,9 @@ class CauseSpecificNet(torch.nn.Module):
 			self.risk_nets.append(net)
 
 	def forward(self, input):
+		residual = input
 		out = self.shared_net(input)
+		out = torch.cat((out, residual), dim=1) ##
 		out = [net(out) for net in self.risk_nets]
 		out = torch.stack(out, dim=1)
 		return out
@@ -207,7 +207,7 @@ def km_curves(idx, event_idx, model, df_test_tuple, threshold_list, cut_expand, 
 	pred_surv = model.predict_surv(pd.DataFrame(df_test.loc[idx]).T, event=event_idx)
 	
 	pred_risk0 = pd.DataFrame(pred_surv.numpy(), columns=cut_expand, index=[idx]).T
-	# print('pred_risk0', pred_risk0)
+
 	pred_risk = pd.merge(
 						#  pred_risk,
 						kmf0.survival_function_,

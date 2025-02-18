@@ -10,22 +10,14 @@ import torch
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import Optimizer
 
-from .losses import NLLPCHazardLoss
-from .utils import de_tuple
+from ..losses import NLLPCHazardLoss
+from ..utils import de_tuple
 
 
 class EarlyStopping:
-    """Early stops the training if validation loss doesn't improve after a given patience."""
+
     def __init__(self, patience=7, verbose=False, delta=0):
-        """
-        Args:
-            patience (int): How long to wait after last time validation loss improved.
-                            Default: 7
-            verbose (bool): If True, prints a message for each validation loss improvement. 
-                            Default: False
-            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
-                            Default: 0
-        """
+
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -59,7 +51,7 @@ class EarlyStopping:
         self.val_loss_min = val_loss
 
 def pad_col(input, val=0, where='end'):
-    """Addes a column of `val` at the start of end of `input`."""
+
     if len(input.shape) != 2:
         raise ValueError("Only works for `phi` tensor that is 2-D.")
     pad = torch.zeros_like(input[:, :1])
@@ -98,19 +90,7 @@ SCHEDULES = {
 }
 
 class BERTAdam(Optimizer):
-    """Implements BERT version of Adam algorithm with weight decay fix (and no ).
-    Params:
-        lr: learning rate
-        warmup: portion of t_total for the warmup, -1  means no warmup. Default: -1
-        t_total: total number of training steps for the learning
-            rate schedule, -1  means constant learning rate. Default: -1
-        schedule: schedule to use for the warmup (see above). Default: 'warmup_linear'
-        b1: Adams b1. Default: 0.9
-        b2: Adams b2. Default: 0.999
-        e: Adams epsilon. Default: 1e-6
-        weight_decay_rate: Weight decay. Default: 0.01
-        max_grad_norm: Maximum norm for the gradients (-1 means no clipping). Default: 1.0
-    """
+
     def __init__(self, params, lr, warmup=-1, t_total=-1, schedule='warmup_linear',
                  b1=0.9, b2=0.999, e=1e-6, weight_decay_rate=0.01,
                  max_grad_norm=1.0):
@@ -171,11 +151,7 @@ class BERTAdam(Optimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p.data)
 
     def step(self, closure=None):
-        """Performs a single optimization step.
-        Arguments:
-            closure (callable, optional): A closure that reevaluates the model
-                and returns the loss.
-        """
+
         loss = None
         if closure is not None:
             loss = closure()
@@ -652,13 +628,7 @@ class Trainer:
         val_batch_size=None,
         **kwargs,
         ):
-        '''fit on the train_set, validate on val_set for early stop
-        params should have the following terms:
-        batch_size,
-        epochs,
-        optimizer,
-        metric,
-        '''
+
         if self.model.config.num_event == 1:
             return self.train_single_event(
                     train_set=train_set,
